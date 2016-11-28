@@ -189,39 +189,47 @@ def write_memory(address, content, registers, memory):
 
 def read_memory(address, registers, memory):
     registers["mar"] = address
-    registers["mdr"] = memory[registers["mdr"]]
+    registers["mdr"] = memory[registers["mar"]]
     if PRINT_DEBUG: print("Read {data} from address {addr} into MDR".format(data=registers["mdr"], addr=address))
 
 def exec_ADD(operand, registers, memory):
-    registers["mar"] = operand                  # 1. Store operand in MAR
-    registers["mdr"] = memory[registers["mar"]] # 2. Get data from memory and store in in MDR
-    registers["acc"] += registers["mdr"]        # 3. Add the MDR to the accumulator
+    read_memory(operand, registers, memory)     # Read from operand to MDR
+    registers["acc"] += registers["mdr"]        # Add MDR to accumulator
+    if PRINT_DEBUG: print("Added MDR to accumulator")
 
 def exec_SUB(operand, registers, memory):
-    registers["mar"] = operand
-    registers["mdr"] = memory[registers["mar"]]
-    registers["acc"] -= registers["mdr"]
+    read_memory(operand, registers, memory)     # Read from operand to MDR
+    registers["acc"] -= registers["mdr"]        # Subtract MDR from accumulator
+    if PRINT_DEBUG: print("Subtracted MDR from accumulator")
 
 def exec_STA(operand, registers, memory):
-    registers["mar"] = operand                  # Store operand in MAR
-    registers["mdr"] = registers["acc"]         # Store accumulator value in MDR
-    memory[registers["mar"]] = registers["mdr"] # Write MDR to memory
+    write_memory(operand, registers["acc"],
+                 registers, memory)             # Write from accumulator to memory
+    if PRINT_DEBUG: print("Stored accumulator in memory")
 
 def exec_LDA(operand, registers, memory):
-    registers["mar"] = operand                  # Store operand in MAR
-    registers["mdr"] = memory[registers["mar"]] # Load memory data into MDR
+    read_memory(operand, registers, memory)     # Read from operand to MDR
     registers["acc"] = registers["mdr"]         # Store MDR in accumulator
+    if PRINT_DEBUG: print("Loaded MDR into accumulator")
 
 def exec_BRA(operand, registers, memory):
     registers["pc"] = operand                   # Save operand to PC (branch)
+    if PRINT_DEBUG: print("Set PC to {}".format(operand))
 
 def exec_BRZ(operand, registers, memory):
     if registers["acc"] == 0:
         registers["pc"] = operand
+        if PRINT_DEBUG: print("Set PC to {} as acc == 0".format(operand))
+    else:
+        if PRINT_DEBUG: print("No change to PC as ass != 0")
+
 
 def exec_BRP(operand, registers, memory):
     if registers["acc"] > 0:
         registers["pc"] = operand
+        if PRINT_DEBUG: print("Set PC to {} as acc > 0".format(operand))
+    else:
+        if PRINT_DEBUG: print("No change to PC as ass != 0")
 
 def exec_INP(operand, registers, memory):
     registers["acc"] = int(input("< "))
