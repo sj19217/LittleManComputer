@@ -55,6 +55,15 @@ PRINT_DEBUG = True
 LabelledCommandTuple = namedtuple("LabelledCommandTuple", ["label", "opcode", "operand"])
 CommandTuple = namedtuple("CommandTuple", ["opcode", "operand"])
 
+# An index of labels: name -> address
+LABELS_INDEX = {}
+
+def get_label_from_numeric(num):
+    for key, value in LABELS_INDEX.items():
+        if value == num:
+            return key
+    raise ValueError("Unknown label {}".format(num))
+
 # For a synatx error in the code
 class CompileError(Exception):
     pass
@@ -141,23 +150,21 @@ def compile_assembly(asm):
 
 
     # STEP 4 - Replace labels with numeric IDs
-    # Firstly, make a label index
-    labels_index = {}
     for i, command in enumerate(labelled_command_tuples):
         if command.label:
             # Is there already one there?
-            if command.label in labels_index.keys():
+            if command.label in LABELS_INDEX.keys():
                 raise CompileError("Already a line with label {}".format(command.label))
 
             # There isn't, so add it now
-            labels_index[command.label] = i
+            LABELS_INDEX[command.label] = i
 
     # Finally, Perform replacements
     command_tuples = []
     for command in labelled_command_tuples:
         if isinstance(command.operand, str):
-            if command.operand in labels_index.keys():
-                label_numeric = labels_index[command.operand]
+            if command.operand in LABELS_INDEX.keys():
+                label_numeric = LABELS_INDEX[command.operand]
             else:
                 raise CompileError("Unknown label: {}".format(command.operand))
 
@@ -185,12 +192,12 @@ def write_memory(address, content, registers, memory):
     registers["mar"] = address
     registers["mdr"] = content
     memory[registers["mar"]] = registers["mdr"]
-    if PRINT_DEBUG: print("Wrote {data} to address {addr}".format(data=content, addr=address))
+    if PRINT_DEBUG: print("Wrote {data} to address {addr} ({name})".format(data=content, addr=address, name=get_label_from_numeric(address)))
 
 def read_memory(address, registers, memory):
     registers["mar"] = address
     registers["mdr"] = memory[registers["mar"]]
-    if PRINT_DEBUG: print("Read {data} from address {addr} into MDR".format(data=registers["mdr"], addr=address))
+    if PRINT_DEBUG: print("Read {data} from address {addr} ({name}) into MDR".format(data=registers["mdr"], addr=address, name=get_label_from_numeric(address)))
 
 def exec_ADD(operand, registers, memory):
     read_memory(operand, registers, memory)     # Read from operand to MDR
@@ -214,7 +221,7 @@ def exec_LDA(operand, registers, memory):
 
 def exec_BRA(operand, registers, memory):
     registers["pc"] = operand                   # Save operand to PC (branch)
-    if PRINT_DEBUG: print("Set PC to {}".format(operand))
+    if PRINT_DEBUG: print("Set PC to {addr} ({name})".format(addr=operand, name=get_label_from_numeric(address)))
 
 def exec_BRZ(operand, registers, memory):
     if registers["acc"] == 0:
@@ -315,6 +322,19 @@ def print_tabular(data, columns):
         if i % columns == 0:
             print()
 
+def print_dict_table(data):
+    """
+    Prints the dict into a key column and a value column
+    @param data:
+    @return:
+    """
+
+    max_size_key = len(max([str(x) for x in data.keys()], key=lambda x: len(x)))
+    max_size_data = len(max([str(x) for x in data.values()], key=lambda x: len(x)))
+
+    for key, value in data.items():
+        print(format(key, ">" + str(max_size_key)) + "  " + format(value, ">" + str(max_size_data)))
+
 
 def main(asm):
     """
@@ -326,6 +346,8 @@ def main(asm):
     memory = compile_assembly(asm)
     print("Initial memory state:")
     print_tabular(memory, 10)
+    print("\nLabels/addresses:")
+    print_dict_table(LABELS_INDEX)
 
     # Run the program
     execute(memory)
@@ -336,3 +358,4 @@ def main(asm):
 
 if __name__ == "__main__":
     main(ASSEMBLY_CODE)
+
