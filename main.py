@@ -221,7 +221,7 @@ def exec_LDA(operand, registers, memory):
 
 def exec_BRA(operand, registers, memory):
     registers["pc"] = operand                   # Save operand to PC (branch)
-    if PRINT_DEBUG: print("Set PC to {addr} ({name})".format(addr=operand, name=get_label_from_numeric(address)))
+    if PRINT_DEBUG: print("Set PC to {addr} ({name})".format(addr=operand, name=get_label_from_numeric(operand)))
 
 def exec_BRZ(operand, registers, memory):
     if registers["acc"] == 0:
